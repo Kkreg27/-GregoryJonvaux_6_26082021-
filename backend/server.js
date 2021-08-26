@@ -1,4 +1,4 @@
-const http = require("http");
+const http = require("http"); //Package de node permettant la création d'un serveur
 const app = require("./app");
 
 const normalizePort = (val) => {
@@ -36,7 +36,7 @@ const errorHandler = (error) => {
   }
 };
 
-const server = http.createServer(app);
+const server = http.createServer(app); //Création du serveur avec pour agument la fonction "app"
 
 server.on("error", errorHandler);
 server.on("listening", () => {
