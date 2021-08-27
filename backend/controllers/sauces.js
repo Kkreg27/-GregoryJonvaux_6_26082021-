@@ -1,5 +1,6 @@
 const Sauce = require("../models/Sauces");
 const fs = require("fs");
+const { remove } = require("../models/Sauces");
 
 exports.createSauce = (req, res, next) => {
   const sauceObject = JSON.parse(req.body.sauce); //extrai le json depuis l'objet sauce
@@ -85,34 +86,114 @@ exports.getAllSauce = (req, res, next) => {
     });
 };
 
+function findInArrayLike(array, valueToDetect) {
+  for (let elem of array) {
+    if (elem === valueToDetect) {
+      return true;
+    }
+  }
+  return false;
+} //Permet la detectionde l'userid dans les tableaux de jaime et jaime pas
+
+function deleteUserInArray(array, userId) {
+  for (let elem of array) {
+    if (elem === userId) {
+      array.splice(elem, 1);
+    }
+  }
+}
+
 exports.likeSauce = (req, res, next) => {
   Sauce.findOne({ _id: req.params.id })
     .then((sauce) => {
       const like = req.body.like;
-      const ID = req.body.userId; //mon id d'utilisateur
-      const test = req.params.id; //id du produit
-      console.log(`id produit : ${JSON.stringify(test)}`); //idproduit
-      console.log(`id utilisateur connecté : ${ID}`); //userid
 
       if (like == 1) {
         //requete j'aime = 1
-        if (sauce.usersLiked == 0 && sauce.usersDisliked == 0) {
-          // tableau userliked et unserdisliked sont vide
+        if (
+          !findInArrayLike(sauce.usersLiked, req.body.userId) &&
+          !findInArrayLike(sauce.usersDisliked, req.body.userId) // tableau userliked et unserDisliked sont vide
+        ) {
           sauce.likes++; //ajoute +1 au likes
           sauce.usersLiked.push(sauce.userId); //ajoute l'userId dans le tableau de usersliked
           console.log(sauce);
+          //
           Sauce.updateOne(
             //Sauce =  modèle de sauce
             //
             { _id: req.params.id }, //filtre
-            { _id: req.params.id } //nouvelle modifcation mis a jour
+            sauce //nouvelle modifcation mis a jour
           )
             .then(() => res.status(200).json({ message: "Like mis a jour !" })) //envoi de réponse au frontend
-            .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
-          console.log("Vous venez d'aimer la sauce");
+            .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur
         } else {
         }
       } else {
+        //parti d'envoi de requete = 0 ou -1
+        if (like == 0) {
+          //requete j'aime plus = 0
+          if (
+            findInArrayLike(sauce.usersLiked, req.body.userId) // userid deja dans le tableau des like
+          ) {
+            sauce.likes--; //enleve 1 au likes
+            deleteUserInArray(sauce.usersLiked, req.body.userId); //supprime l'utilisateur du tableau des likes
+            console.log(sauce);
+            //
+            Sauce.updateOne(
+              //Sauce =  modèle de sauce
+              //
+              { _id: req.params.id }, //filtre
+              sauce //nouvelle modifcation mis a jour
+            )
+              .then(() =>
+                res.status(200).json({ message: "Like mis a jour !" })
+              ) //envoi de réponse au frontend
+              .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
+          } else {
+            if (
+              findInArrayLike(sauce.usersDisliked, req.body.userId) // userid deja dans le tableau des dislike
+            ) {
+              sauce.dislikes--; //enleve 1 au dislike
+              deleteUserInArray(sauce.usersDisliked, req.body.userId); //supprime l'utilisateur du tableau des dislikes
+              console.log(sauce);
+              //
+              Sauce.updateOne(
+                //
+                { _id: req.params.id }, //filtre
+                sauce //nouvelle modifcation mis a jour
+              )
+                .then(() =>
+                  res.status(200).json({ message: "Like mis a jour !" })
+                ) //envoi de réponse au frontend
+                .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
+            }
+          }
+        } else {
+          if (like == -1) {
+            console.log(-1);
+            console.log(sauce);
+            //requete j'aime pas = 0
+            if (
+              !findInArrayLike(sauce.usersLiked, req.body.userId) &&
+              !findInArrayLike(sauce.usersDisliked, req.body.userId) // tableau userliked et unserDisliked sont vide
+            ) {
+              sauce.dislikes++; //ajoute +1 au dislikes
+              sauce.usersDisliked.push(sauce.userId); //ajoute l'userId dans le tableau de usersliked
+              Sauce.updateOne(
+                //Sauce =  modèle de sauce
+                //
+                { _id: req.params.id }, //filtre
+                sauce //nouvelle modifcation mis a jour
+              )
+                .then(() =>
+                  res.status(200).json({ message: "Like mis a jour !" })
+                ) //envoi de réponse au frontend
+                .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur
+              console.log(sauce);
+            } else {
+            }
+          }
+        }
       }
     })
     .catch((error) => res.status(500).json({ error }));
