@@ -101,7 +101,7 @@ function deleteUserInArray(array, userId) {
       array.splice(elem, 1);
     }
   }
-}
+} //Permet la detectionde l'userid dans les tableaux et de le supprimer
 
 exports.likeSauce = (req, res, next) => {
   Sauce.findOne({ _id: req.params.id })
@@ -170,8 +170,6 @@ exports.likeSauce = (req, res, next) => {
           }
         } else {
           if (like == -1) {
-            console.log(-1);
-            console.log(sauce);
             //requete j'aime pas = 0
             if (
               !findInArrayLike(sauce.usersLiked, req.body.userId) &&
