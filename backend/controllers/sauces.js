@@ -1,6 +1,6 @@
 const Sauce = require("../models/Sauces");
 const fs = require("fs");
-const { remove } = require("../models/Sauces");
+const sanitize = require("mongo-sanitize");
 
 exports.createSauce = (req, res, next) => {
   const sauceObject = JSON.parse(req.body.sauce); //extrai le json depuis l'objet sauce
@@ -20,7 +20,7 @@ exports.createSauce = (req, res, next) => {
 exports.getOneSauce = (req, res, next) => {
   Sauce.findOne({
     //recupere la donnée depuis la méthode findOne
-    _id: req.params.id, //Objet en vente correspond à l'identifiant mis dans le parametre d'url
+    _id: sanitize(req.params.id), //Objet en vente correspond à l'identifiant mis dans le parametre d'url
   })
     .then((sauce) => {
       res.status(200).json(sauce); //renvoi la donnée dans la reponse du front
@@ -42,7 +42,7 @@ exports.modifySauce = (req, res, next) => {
       }
     : { ...req.body };
   if (sauceObject.imageUrl) {
-    Sauce.findOne({ _id: req.params.id }) //
+    Sauce.findOne({ _id: sanitize(req.params.id) }) //
       .then((sauce) => {
         const filename = sauce.imageUrl.split("/images/")[1];
         fs.unlink(`images/${filename}`, () => {});
@@ -50,7 +50,7 @@ exports.modifySauce = (req, res, next) => {
       .catch((error) => res.status(500).json({ error }));
   }
   Sauce.updateOne(
-    { _id: req.params.id }, //filtre
+    { _id: sanitize(req.params.id) }, //filtre
     { ...sauceObject, _id: req.params.id } //update
   )
     .then(() => res.status(200).json({ message: "Sauce modifié !" }))
@@ -58,7 +58,7 @@ exports.modifySauce = (req, res, next) => {
 };
 
 exports.deleteSauce = (req, res, next) => {
-  Sauce.findOne({ _id: req.params.id }) //recupere l'objet pour obtenir l'url de l'image afin de la supprimer
+  Sauce.findOne({ _id: sanitize(req.params.id) }) //recupere l'objet pour obtenir l'url de l'image afin de la supprimer
     .then((sauce) => {
       const filename = sauce.imageUrl.split("/images/")[1]; //recupere le nom du fichier
       fs.unlink(`images/${filename}`, () => {
@@ -86,15 +86,6 @@ exports.getAllSauce = (req, res, next) => {
     });
 };
 
-function findInArrayLike(array, valueToDetect) {
-  for (let elem of array) {
-    if (elem === valueToDetect) {
-      return true;
-    }
-  }
-  return false;
-} //Permet la detectionde l'userid dans les tableaux de jaime et jaime pas
-
 function deleteUserInArray(array, userId) {
   for (let elem of array) {
     if (elem === userId) {
@@ -104,24 +95,24 @@ function deleteUserInArray(array, userId) {
 } //Permet la detectionde l'userid dans les tableaux et de le supprimer
 
 exports.likeSauce = (req, res, next) => {
-  Sauce.findOne({ _id: req.params.id })
+  Sauce.findOne({ _id: sanitize(req.params.id) })
     .then((sauce) => {
       const like = req.body.like;
 
       if (like == 1) {
         //requete j'aime = 1
         if (
-          !findInArrayLike(sauce.usersLiked, req.body.userId) &&
-          !findInArrayLike(sauce.usersDisliked, req.body.userId) // tableau userliked et unserDisliked sont vide
+          !sauce.usersLiked.includes(req.body.userId) &&
+          !sauce.usersDisliked.includes(req.body.userId) // tableau userliked et unserDisliked sont vide
         ) {
           sauce.likes++; //ajoute +1 au likes
-          sauce.usersLiked.push(sauce.userId); //ajoute l'userId dans le tableau de usersliked
-          console.log(sauce);
+          sauce.usersLiked.push(req.body.userId); //ajoute l'userId dans le tableau de usersliked
+
           //
           Sauce.updateOne(
             //Sauce =  modèle de sauce
             //
-            { _id: req.params.id }, //filtre
+            { _id: sanitize(req.params.id) }, //filtre
             sauce //nouvelle modifcation mis a jour
           )
             .then(() => res.status(200).json({ message: "Like mis a jour !" })) //envoi de réponse au frontend
@@ -132,17 +123,18 @@ exports.likeSauce = (req, res, next) => {
         //parti d'envoi de requete = 0 ou -1
         if (like == 0) {
           //requete j'aime plus = 0
+
           if (
-            findInArrayLike(sauce.usersLiked, req.body.userId) // userid deja dans le tableau des like
+            sauce.usersLiked.includes(req.body.userId) // userid deja dans le tableau des like
           ) {
             sauce.likes--; //enleve 1 au likes
             deleteUserInArray(sauce.usersLiked, req.body.userId); //supprime l'utilisateur du tableau des likes
-            console.log(sauce);
+
             //
             Sauce.updateOne(
               //Sauce =  modèle de sauce
               //
-              { _id: req.params.id }, //filtre
+              { _id: sanitize(req.params.id) }, //filtre
               sauce //nouvelle modifcation mis a jour
             )
               .then(() =>
@@ -151,15 +143,15 @@ exports.likeSauce = (req, res, next) => {
               .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
           } else {
             if (
-              findInArrayLike(sauce.usersDisliked, req.body.userId) // userid deja dans le tableau des dislike
+              sauce.usersDisliked.includes(req.body.userId) // userid deja dans le tableau des dislike
             ) {
               sauce.dislikes--; //enleve 1 au dislike
               deleteUserInArray(sauce.usersDisliked, req.body.userId); //supprime l'utilisateur du tableau des dislikes
-              console.log(sauce);
+
               //
               Sauce.updateOne(
                 //
-                { _id: req.params.id }, //filtre
+                { _id: sanitize(req.params.id) }, //filtre
                 sauce //nouvelle modifcation mis a jour
               )
                 .then(() =>
@@ -172,22 +164,21 @@ exports.likeSauce = (req, res, next) => {
           if (like == -1) {
             //requete j'aime pas = 0
             if (
-              !findInArrayLike(sauce.usersLiked, req.body.userId) &&
-              !findInArrayLike(sauce.usersDisliked, req.body.userId) // tableau userliked et unserDisliked sont vide
+              !sauce.usersLiked.includes(req.body.userId) &&
+              !sauce.usersDisliked.includes(req.body.userId) // tableau userliked et unserDisliked sont vide
             ) {
               sauce.dislikes++; //ajoute +1 au dislikes
-              sauce.usersDisliked.push(sauce.userId); //ajoute l'userId dans le tableau de usersliked
+              sauce.usersDisliked.push(req.body.userId); //ajoute l'userId dans le tableau de usersliked
               Sauce.updateOne(
                 //Sauce =  modèle de sauce
                 //
-                { _id: req.params.id }, //filtre
+                { _id: sanitize(req.params.id) }, //filtre
                 sauce //nouvelle modifcation mis a jour
               )
                 .then(() =>
                   res.status(200).json({ message: "Like mis a jour !" })
                 ) //envoi de réponse au frontend
                 .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur
-              console.log(sauce);
             } else {
             }
           }

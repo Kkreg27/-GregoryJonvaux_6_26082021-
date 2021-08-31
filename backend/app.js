@@ -1,23 +1,28 @@
 const express = require("express");
+const helmet = require("helmet");
 const mongoose = require("mongoose");
 const path = require("path");
 const bodyParser = require("body-parser");
 const saucesRoutes = require("./routes/saucePath");
 const userRoutes = require("./routes/user");
 const app = express();
+require("dotenv").config();
 //
 //
+const MGDBUser = process.env.JS_USER;
+const MGDBPassword = process.env.JS_PASSWORD;
 //
 //--------Liaison avec la baase donnée MONGODB--------------------------------------------------------
 mongoose
   .connect(
-    "mongodb+srv://Greg:Kq5MphWfyT3jp919@cluster0.7l452.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
+    `mongodb+srv://${MGDBUser}:${MGDBPassword}@cluster0.7l452.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`,
     { useNewUrlParser: true, useUnifiedTopology: true }
   )
   .then(() => console.log("Connexion à MongoDB réussie !"))
   .catch(() => console.log("Connexion à MongoDB échouée !"));
 //
 //
+app.use(helmet());
 //
 //-------Middleware génrérale qui ajoute des headers au réponse pour les autorisation de CORS------------------------
 app.use((req, res, next) => {
