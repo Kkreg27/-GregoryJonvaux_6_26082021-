@@ -86,10 +86,10 @@ exports.getAllSauce = (req, res, next) => {
     });
 };
 
-function deleteUserInArray(array, userId) {
-  for (let elem of array) {
-    if (elem === userId) {
-      array.splice(elem, 1);
+function deleteUserInArray(array, idRequete) {
+  for (var i = 0; i < array.length; i++) {
+    if (array[i] == idRequete) {
+      array.splice(i, 1);
     }
   }
 } //Permet la detectionde l'userid dans les tableaux et de le supprimer
@@ -101,6 +101,8 @@ exports.likeSauce = (req, res, next) => {
 
       if (like == 1) {
         //requete j'aime = 1
+        console.log(like);
+        console.log(sauce);
         if (
           !sauce.usersLiked.includes(req.body.userId) &&
           !sauce.usersDisliked.includes(req.body.userId) // tableau userliked et unserDisliked sont vide
@@ -117,11 +119,15 @@ exports.likeSauce = (req, res, next) => {
           )
             .then(() => res.status(200).json({ message: "Like mis a jour !" })) //envoi de réponse au frontend
             .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur
+          console.log(sauce);
         } else {
         }
       } else {
         //parti d'envoi de requete = 0 ou -1
         if (like == 0) {
+          console.log(like);
+          console.log(sauce);
+
           //requete j'aime plus = 0
 
           if (
@@ -141,6 +147,7 @@ exports.likeSauce = (req, res, next) => {
                 res.status(200).json({ message: "Like mis a jour !" })
               ) //envoi de réponse au frontend
               .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
+            console.log(sauce);
           } else {
             if (
               sauce.usersDisliked.includes(req.body.userId) // userid deja dans le tableau des dislike
@@ -158,10 +165,14 @@ exports.likeSauce = (req, res, next) => {
                   res.status(200).json({ message: "Like mis a jour !" })
                 ) //envoi de réponse au frontend
                 .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur'
+              console.log(sauce);
             }
           }
         } else {
           if (like == -1) {
+            console.log(like);
+            console.log(sauce);
+
             //requete j'aime pas = 0
             if (
               !sauce.usersLiked.includes(req.body.userId) &&
@@ -179,6 +190,7 @@ exports.likeSauce = (req, res, next) => {
                   res.status(200).json({ message: "Like mis a jour !" })
                 ) //envoi de réponse au frontend
                 .catch((error) => res.status(400).json({ error })); // recupere et renvoi l'erreur
+              console.log(sauce);
             } else {
             }
           }
